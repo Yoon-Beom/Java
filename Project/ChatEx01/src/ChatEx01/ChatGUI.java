@@ -2,13 +2,16 @@ package ChatEx01;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.awt.event.*;
+import java.io.*;
+import java.net.*;
 
 public class ChatGUI extends JFrame {
     private JTextArea chatArea;
     private JTextField messageField;
     private JButton sendButton;
+    private PrintWriter out;
+    private BufferedReader in;
 
     public ChatGUI() {
         setTitle("1대1 채팅");
@@ -45,13 +48,41 @@ public class ChatGUI extends JFrame {
 
         sendButton.addActionListener(sendListener);
         messageField.addActionListener(sendListener);
+        
+        connectToServer();
+    }
+    
+    private void connectToServer() {
+        try {
+            Socket socket = new Socket("localhost", 5000);
+            out = new PrintWriter(socket.getOutputStream(), true);
+            in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+
+            // 서버로부터 메시지를 받는 쓰레드 시작
+            new Thread(this::receiveMessages).start();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private void sendMessage() {
         String message = messageField.getText();
         if (!message.isEmpty()) {
             chatArea.append("나: " + message + "\n");
+            out.println(message);
             messageField.setText("");
+        }
+    }
+    
+    private void receiveMessages() {
+        try {
+            String message;
+            while ((message = in.readLine()) != null) {
+                final String finalMessage = message;
+                SwingUtilities.invokeLater(() -> chatArea.append(finalMessage + "\n"));
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
