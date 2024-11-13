@@ -2,6 +2,8 @@ package ChatEx01;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 
 public class ChatGUI extends JFrame {
     private JTextArea chatArea;
@@ -32,6 +34,25 @@ public class ChatGUI extends JFrame {
         bottomPanel.add(messageField, BorderLayout.CENTER);
         bottomPanel.add(sendButton, BorderLayout.EAST);
         add(bottomPanel, BorderLayout.SOUTH);
+        
+        // 이벤트 리스너 추가
+        ActionListener sendListener = new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                sendMessage();
+            }
+        };
+
+        sendButton.addActionListener(sendListener);
+        messageField.addActionListener(sendListener);
+    }
+
+    private void sendMessage() {
+        String message = messageField.getText();
+        if (!message.isEmpty()) {
+            chatArea.append("나: " + message + "\n");
+            messageField.setText("");
+        }
     }
 
     public static void main(String[] args) {
