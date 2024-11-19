@@ -197,6 +197,8 @@ public class MultiChatClient extends JFrame {
                             nicknameField.setText(newNick);
                         }
                         chatArea.append(finalMessage + "\n");
+                	} else if (finalMessage.startsWith("PARTICIPANTS")) {
+                		
                 	} else {
                         chatArea.append(finalMessage + "\n");
                 	}

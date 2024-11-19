@@ -33,7 +33,8 @@ public class ChatServer {
         private Socket socket;
         private PrintWriter out;
         private BufferedReader in;
-        private String nickname;
+        private String nickname;	// 현재 닉네임
+        private String currentRoom; // 현재 방 이름 추가
         
     	public ClientHandler(Socket socket) {
             this.socket = socket;
@@ -150,6 +151,7 @@ public class ChatServer {
             StringBuilder participants = new StringBuilder("PARTICIPANTS ");
             for (ClientHandler client : allClients) {
                 participants.append(client.nickname).append(" ");
+                
             }
             broadcastToAll(participants.toString());
         }
