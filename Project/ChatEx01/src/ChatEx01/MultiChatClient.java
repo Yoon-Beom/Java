@@ -1,3 +1,4 @@
+// MultiChatClient.java
 package ChatEx01;
 
 import javax.swing.*;
@@ -122,38 +123,20 @@ public class MultiChatClient extends JFrame {
 			out = new PrintWriter(socket.getOutputStream(), true);
 			in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
-			int attempts = 0;
-	        final int MAX_ATTEMPTS = 3;
-			
-			// 닉네임 설정 및 중복 확인
-			while (attempts < MAX_ATTEMPTS) {
-                String nickname = nicknameField.getText();
-                if (nickname.isEmpty()) {
-                    nickname = "Guest" + System.currentTimeMillis() % 1000;
-                    nicknameField.setText(nickname);
-                }
-                out.println(nickname);
-                String response = in.readLine();
-                if ("NICKNAME_ACCEPTED".equals(response)) {
-                    break;
-                } else if ("NICKNAME_TAKEN".equals(response)) {
-                    JOptionPane.showMessageDialog(this, "닉네임이 이미 사용 중입니다. 다른 닉네임을 선택해주세요.", "닉네임 중복", JOptionPane.WARNING_MESSAGE);
-                    nicknameField.setText("");
-                    attempts++;
-                }
-                
-                if (attempts == MAX_ATTEMPTS) {
-                    JOptionPane.showMessageDialog(this, "닉네임 설정 시도 횟수를 초과했습니다. 프로그램을 다시 시작해주세요.", "오류", JOptionPane.ERROR_MESSAGE);
-                    System.exit(1);
-                }
-            }
 
-			// 서버로부터 메시지를 받는 쓰레드 시작
-			new Thread(this::receiveMessages).start();
-			chatArea.append("서버에 연결되었습니다.\n");
+			// 서버로부터 자동 할당된 닉네임 받기
+            String response = in.readLine();
+            if (response.startsWith("NICKNAME_ASSIGNED")) {
+            	String assignedNickname = response.split(" ")[1];
+            	nicknameField.setText(assignedNickname);
+            	chatArea.append("서버에 연결되었습니다. 할당된 닉네임: " + assignedNickname + "\n");
+            }
 			
-			// 기존 방 목록 요청
-			out.println("/rooms"); // 새로 추가: 방 목록 요청
+            // 서버로부터 메시지를 받는 쓰레드 시작
+            new Thread(this::receiveMessages).start();
+			
+            // 기존 방 목록 요청
+            out.println("/rooms");
 		} catch (IOException e) {
 			e.printStackTrace();
 			chatArea.append("서버 연결 실패: " + e.getMessage() + "\n");
@@ -180,9 +163,10 @@ public class MultiChatClient extends JFrame {
 		String newNickname = nicknameField.getText().trim();
         if (!newNickname.isEmpty()) {
             out.println("/nick " + newNickname);
-//            chatArea.append("닉네임 변경 요청: " + newNickname + "\n");
         } else {
-            JOptionPane.showMessageDialog(this, "닉네임을 입력해주세요.", "오류", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog
+            	(this, "닉네임을 입력해주세요.",
+            	"오류", JOptionPane.ERROR_MESSAGE);
         }
 	}
 
@@ -194,11 +178,18 @@ public class MultiChatClient extends JFrame {
             	// 닉네임 변경 메시지 처리
             	final String finalMessage = message;
                 SwingUtilities.invokeLater(() -> {
-                	if ("NICKNAME_CHANGED".equals(finalMessage)) {
-//                		chatArea.append("닉네임이 성공적으로 변경되었습니다.\n");
-                	} else if ("NICKNAME_TAKEN".equals(finalMessage)) {
-                		JOptionPane.showMessageDialog(MultiChatClient.this, "닉네임이 이미 사용 중입니다. 다른 닉네임을 선택해주세요.", "닉네임 중복", JOptionPane.WARNING_MESSAGE);
-                	} else if (finalMessage.contains("의 닉네임이") && finalMessage.contains("으로 변경되었습니다.")) {
+                	if (finalMessage.startsWith("NICKNAME_CHANGED")) { // 닉네임 변경 성공
+                		String newNickname = finalMessage.split(" ")[1];
+                		nicknameField.setText(newNickname);
+                	} else if (finalMessage.equals("NICKNAME_TAKEN")) { // 닉네임 중복
+                		JOptionPane.showMessageDialog
+                			(this, "닉네임이 이미 사용 중입니다. 다른 닉네임을 선택해주세요.",
+                			"닉네임 중복", JOptionPane.WARNING_MESSAGE);
+                	} else if (finalMessage.equals("INVALID_NICKNAME")) { // 유효하지 않은 닉네임
+                		JOptionPane.showMessageDialog
+                			(this, "유효하지 않은 닉네임입니다. Guest로 시작하지 않는 닉네임을 입력해주세요.",
+                			"오류", JOptionPane.ERROR_MESSAGE);
+                	} else if(finalMessage.contains("의 닉네임이") && finalMessage.contains("으로 변경되었습니다.")) { // 다른 사용자의 닉네임 변경 메시지 처리
                 		String[] parts = finalMessage.split("의 닉네임이");
                         String oldNick = parts[0];
                         String newNick = parts[1].split("으로 변경되었습니다.")[0].trim();

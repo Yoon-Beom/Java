@@ -1,3 +1,4 @@
+// ChatServer.java
 package ChatEx01;
 
 import java.io.*;
@@ -47,33 +48,12 @@ public class ChatServer {
     	@Override
     	public void run() {
             try {
-            	// 닉네임 설정 시도 횟수 제한
-                int attempts = 0;
-                final int MAX_ATTEMPTS = 3;
-                System.out.println(usedNicknames);
-                
-            	while (true) {
-                    // 클라이언트로부터 닉네임 받기
-            	    nickname = in.readLine();
-            	    if (nickname == null) {
-            	        return;
-            	    }
-            	    synchronized (usedNicknames) {
-            	        if (!usedNicknames.contains(nickname)) {
-            	            usedNicknames.add(nickname);
-            	            out.println("NICKNAME_ACCEPTED");
-            	            break;
-            	        } else {
-            	            out.println("NICKNAME_TAKEN");
-                            attempts++;
-                            
-                            if (attempts == MAX_ATTEMPTS) {
-                                out.println("MAX_ATTEMPTS_REACHED");
-                                return; // 연결 종료
-                            }
-            	        }
-            	    }
-            	} // 닉네임 중복 검사
+            	// 게스트 닉네임 자동 생성
+            	nickname = generateUniqueGuestNickname();
+            	synchronized (usedNicknames) {
+                    usedNicknames.add(nickname);
+                }
+            	out.println("NICKNAME_ASSIGNED " + nickname);
             	
                 System.out.println("새로운 사용자 연결: " + nickname);
                 allClients.add(this);
@@ -85,21 +65,24 @@ public class ChatServer {
                 	
                 	if (inputLine.startsWith("/nick ")) {	// 닉네임 변경 처리
                 		String newNickname = inputLine.substring(6).trim();
-                		 if (!newNickname.isEmpty()) {
-                			 synchronized (usedNicknames) {
-                                 if (!usedNicknames.contains(newNickname)) {
-                                     String oldNickname = this.nickname;
-                                     usedNicknames.remove(oldNickname);
-                                     usedNicknames.add(newNickname);
-                                     this.nickname = newNickname;
-                                     out.println("NICKNAME_CHANGED");
-		                			 System.out.println("'" + oldNickname + "'의 닉네임이 '" + newNickname + "'으로 변경되었습니다.");
-		                			 broadcastToAll("'" + oldNickname + "'의 닉네임이 '" + newNickname + "'으로 변경되었습니다.");
-                                 } else {
-                                	 out.println("NICKNAME_TAKEN");
-                                 }
-                			 }
-                		 }
+                		if (!newNickname.isEmpty()) { // 비어있지 않으면,
+                			synchronized (usedNicknames) {
+                				if (!usedNicknames.contains(newNickname)) {
+                					String oldNickname = this.nickname;
+                                    usedNicknames.remove(oldNickname);
+                                    usedNicknames.add(newNickname);
+                                    this.nickname = newNickname;
+                                    out.println("NICKNAME_CHANGED " + newNickname);
+                                    
+                                    System.out.println("'" + oldNickname + "'의 닉네임이 '" + newNickname + "'으로 변경되었습니다.");
+                                    broadcastToAll("'" + oldNickname + "'의 닉네임이 '" + newNickname + "'으로 변경되었습니다.");
+                				} else {
+                                    out.println("NICKNAME_TAKEN");  // 닉네임 중복
+                                }
+                			}
+                		} else {
+                            out.println("INVALID_NICKNAME"); // Guest 거나, 닉네임이 없을 경우 
+                        }
                 	} else if (inputLine.startsWith("/rooms")) {
                 		
                 	} else {
@@ -121,6 +104,20 @@ public class ChatServer {
             }
         }
     	
+    	// 고유한 게스트 닉네임 생성 메소드
+    	private String generateUniqueGuestNickname() {
+    		int number = 1;
+    		String nickname = "";
+    		
+    		do {
+    			nickname = "Guest" + number;
+    			number++;
+    		} while (usedNicknames.contains(nickname));
+    		
+    		return nickname;
+    	}
+    	
+    	// 모두에게 채팅 날리는 메소드
     	private void broadcastToAll(String message) {
     		System.out.println("allClients : " + allClients);
             System.out.println("broadcastToAll : " + message);
