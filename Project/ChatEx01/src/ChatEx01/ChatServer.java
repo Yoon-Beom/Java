@@ -85,6 +85,9 @@ public class ChatServer {
                         }
                 	} else if (inputLine.startsWith("/rooms")) {
                 		
+                	} else if (inputLine.startsWith("/join ")) {
+                		String roomName = inputLine.substring(6).trim();
+                        joinRoom(roomName);
                 	} else {
                 		System.out.println("받은 메시지: " + inputLine);
                 		broadcastToAll(nickname + ": " + inputLine);
@@ -128,6 +131,10 @@ public class ChatServer {
     	
     	private void joinRoom(String roomName) {
     		
+    		
+    		this.currentRoom = roomName;
+    		
+    		updateParticipantList();
     	}
     	
     	private void createRoom(String roomName) {
@@ -137,5 +144,14 @@ public class ChatServer {
     	private void broadcast(String message) {
     		
     	}
+    	
+    	private void updateParticipantList() {
+            // 모든 클라이언트에게 현재 참여자 목록 전송
+            StringBuilder participants = new StringBuilder("PARTICIPANTS ");
+            for (ClientHandler client : allClients) {
+                participants.append(client.nickname).append(" ");
+            }
+            broadcastToAll(participants.toString());
+        }
     }
 }
