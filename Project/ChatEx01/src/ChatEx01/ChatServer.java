@@ -13,7 +13,7 @@ public class ChatServer {
     private static Set<String> usedNicknames = ConcurrentHashMap.newKeySet();				// 닉네임 리스트
     
     public static void main(String[] args) {
-        // 수정된 부분: 서버 소켓 생성 및 클라이언트 연결 대기
+        // 서버 소켓 생성 및 클라이언트 연결 대기
         try (ServerSocket serverSocket = new ServerSocket(PORT)) {
             System.out.println("서버가 포트 " + PORT + "에서 시작되었습니다.");
             
