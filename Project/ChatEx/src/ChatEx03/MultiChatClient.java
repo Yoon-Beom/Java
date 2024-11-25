@@ -1,5 +1,5 @@
 // MultiChatClient.java
-package ChatEx01;
+package ChatEx03;
 
 import javax.swing.*;
 
@@ -25,7 +25,7 @@ public class MultiChatClient extends JFrame {
 	private Socket socket;
 	private PrintWriter out;
 	private BufferedReader in;
-	
+
 	public MultiChatClient() {
 		setTitle("다중 채팅방");
 		setSize(800, 600);
@@ -48,6 +48,9 @@ public class MultiChatClient extends JFrame {
 		// 채팅방 생성 버튼
 		createRoomButton = new JButton("방 만들기");
 
+		// 나가기 버튼 생성
+		leaveButton = new JButton("나가기");
+
 		// 닉네임 입력 필드 및 변경 버튼
 		nicknameField = new JTextField(10);
 		changeNicknameButton = new JButton("닉네임 변경");
@@ -63,29 +66,30 @@ public class MultiChatClient extends JFrame {
 		// 상단 패널 (닉네임 입력 및 변경 버튼)
 		JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
 		topPanel.add(new JLabel("닉네임: "));
-		topPanel.add(nicknameField);
-		topPanel.add(changeNicknameButton);
+		topPanel.add(nicknameField);		// 닉네임 입력창
+		topPanel.add(changeNicknameButton);	// 닉네임 변경 버튼
 		add(topPanel, BorderLayout.NORTH);
 
 		// 왼쪽 패널 (방 목록)
 		JPanel westPanel = new JPanel(new BorderLayout());
-		westPanel.add(roomScrollPane, BorderLayout.CENTER);
-		westPanel.add(createRoomButton, BorderLayout.SOUTH);
+		westPanel.add(roomScrollPane, BorderLayout.CENTER);  // 채팅창 목록
+		westPanel.add(createRoomButton, BorderLayout.SOUTH); // 방 만들기 버튼
 
 		// 오른쪽 패널 (참여자 목록)
 		JPanel eastPanel = new JPanel(new BorderLayout());
-		eastPanel.add(new JLabel("참여자 목록"), BorderLayout.NORTH);
-		eastPanel.add(participantScrollPane, BorderLayout.CENTER);
+		eastPanel.add(new JLabel("참여자 목록"), BorderLayout.NORTH); // 참여자 목록 라벨
+		eastPanel.add(participantScrollPane, BorderLayout.CENTER);  // 참여자 목록
+		eastPanel.add(leaveButton, BorderLayout.SOUTH); // 나가기 버튼
 
 		// 가운데 패널 (채팅창)
 		JPanel centerPanel = new JPanel(new BorderLayout());
-		centerPanel.add(chatScrollPane, BorderLayout.CENTER);
+		centerPanel.add(chatScrollPane, BorderLayout.CENTER);  // 채팅창
 
 		// 아래 패널 (채팅창 입력)
 		JPanel bottomPanel = new JPanel(new BorderLayout());
-		bottomPanel.add(messageField, BorderLayout.CENTER);
-		bottomPanel.add(sendButton, BorderLayout.EAST);
-		centerPanel.add(bottomPanel, BorderLayout.SOUTH);
+		bottomPanel.add(messageField, BorderLayout.CENTER);		// 메세지 입력창
+		bottomPanel.add(sendButton, BorderLayout.EAST);			// 전송 버튼
+		centerPanel.add(bottomPanel, BorderLayout.SOUTH);		// 가운데 패널에 바닥 패널 밑에 붙이기
 
 		// JSplitPane으로 화면 분할
 		// 1. 왼쪽 (방 목록)과 가운데+오른쪽 (채팅창 + 참여자 목록) 분할
@@ -102,12 +106,12 @@ public class MultiChatClient extends JFrame {
 		connectToServer();
 
 		// 이벤트 리스너 추가
-		sendButton.addActionListener(e -> sendMessage());				// 전송 버튼
-		messageField.addActionListener(e -> sendMessage());				// 채팅창 전송
-		createRoomButton.addActionListener(e -> createRoom());			// 방 생성 버튼
-		changeNicknameButton.addActionListener(e -> changeNickname());	// 닉네임 변경 버튼
-        leaveButton.addActionListener(e -> leaveRoom());
-		roomList.addMouseListener(new MouseAdapter() {					// 방 리스트 클릭
+		sendButton.addActionListener(e -> sendMessage()); // 전송 버튼
+		messageField.addActionListener(e -> sendMessage()); // 채팅창 전송
+		createRoomButton.addActionListener(e -> createRoom()); // 방 생성 버튼
+		changeNicknameButton.addActionListener(e -> changeNickname()); // 닉네임 변경 버튼
+		leaveButton.addActionListener(e -> leaveRoom());
+		roomList.addMouseListener(new MouseAdapter() { // 방 리스트 클릭
 			public void mouseClicked(MouseEvent e) {
 				if (e.getClickCount() == 2) {
 					String selectedRoom = roomList.getSelectedValue();
@@ -119,13 +123,13 @@ public class MultiChatClient extends JFrame {
 		});
 	}
 
+	// 서버 연결
 	private void connectToServer() {
 		try {
 			socket = new Socket("localhost", 8010);
 			out = new PrintWriter(socket.getOutputStream(), true);
 			in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-
-
+			
 			// 서버로부터 자동 할당된 닉네임 받기
             String response = in.readLine();
             if (response.startsWith("NICKNAME_ASSIGNED")) {
@@ -133,13 +137,11 @@ public class MultiChatClient extends JFrame {
             	nicknameField.setText(assignedNickname);
             	chatArea.append("서버에 연결되었습니다. 할당된 닉네임: " + assignedNickname + "\n");
             }
-			
+            
             // 서버로부터 메시지를 받는 쓰레드 시작
             new Thread(this::receiveMessages).start();
-			
-            // 기존 방 목록 요청
-            out.println("/rooms");
-		} catch (IOException e) {
+            
+		} catch (Exception e) {
 			e.printStackTrace();
 			chatArea.append("서버 연결 실패: " + e.getMessage() + "\n");
 		}
@@ -155,16 +157,6 @@ public class MultiChatClient extends JFrame {
 
 	}
 
-	// 방 참여하기
-	private void joinRoom(String roomName) {
-
-	}
-	
-	// 방 나가기
-	private void leaveRoom() {
-		
-	}
-
 	// 닉네임 변경하기
 	private void changeNickname() {
 		String newNickname = nicknameField.getText().trim();
@@ -177,37 +169,44 @@ public class MultiChatClient extends JFrame {
         }
 	}
 
+	// 방 나가기
+	private void leaveRoom() {
+
+	}
+
+	// 방 참여하기
+	private void joinRoom(String selectedRoom) {
+
+	}
+
 	// 메세지 받기
 	private void receiveMessages() {
-        try {
-            String message;
+		try {
+			String message;
             while ((message = in.readLine()) != null) {
-            	// 닉네임 변경 메시지 처리
             	final String finalMessage = message;
-                SwingUtilities.invokeLater(() -> {
-                	if (finalMessage.startsWith("NICKNAME_CHANGED")) { // 닉네임 변경 성공
-                		String newNickname = finalMessage.split(" ")[1];
+            	SwingUtilities.invokeLater(() -> {
+            		if (finalMessage.startsWith("NICKNAME_CHANGED")) { // 닉네임 변경 성공
+            			String newNickname = finalMessage.split(" ")[1];
                 		nicknameField.setText(newNickname);
-                	} else if (finalMessage.equals("NICKNAME_TAKEN")) { // 닉네임 중복
+            		} else if (finalMessage.equals("NICKNAME_TAKEN")) { // 닉네임 중복
                 		JOptionPane.showMessageDialog
-                			(this, "닉네임이 이미 사용 중입니다. 다른 닉네임을 선택해주세요.",
-                			"닉네임 중복", JOptionPane.WARNING_MESSAGE);
-                	} else if (finalMessage.equals("INVALID_NICKNAME")) { // 유효하지 않은 닉네임
+            			(this, "닉네임이 이미 사용 중입니다. 다른 닉네임을 입력해주세요.",
+            			"닉네임 중복", JOptionPane.WARNING_MESSAGE);
+            		} else if (finalMessage.equals("INVALID_NICKNAME")) { // 유효하지 않은 닉네임
                 		JOptionPane.showMessageDialog
-                			(this, "유효하지 않은 닉네임입니다. Guest로 시작하지 않는 닉네임을 입력해주세요.",
-                			"오류", JOptionPane.ERROR_MESSAGE);
-                	} else if (finalMessage.startsWith("PARTICIPANTS")) {
-                		
-                	} else {
+            			(this, "유효하지 않은 닉네임입니다. 다른 닉네임을 입력해주세요.",
+            			"오류", JOptionPane.ERROR_MESSAGE);
+            		} else { // 채팅창에 표시하기
                         chatArea.append(finalMessage + "\n");
                 	}
-                });
+            	});
             }
-        } catch (IOException e) {
-            e.printStackTrace();
-            SwingUtilities.invokeLater(() -> chatArea.append("서버와의 연결이 끊어졌습니다.\n"));
-        }
-    }
+		} catch (Exception e) {
+			e.printStackTrace();
+			SwingUtilities.invokeLater(() -> chatArea.append("서버와의 연결이 끊어졌습니다.\n"));
+		}
+	}
 
 	// 방 리스트 업데이트
 	private void updateRoomList(String[] rooms) {
